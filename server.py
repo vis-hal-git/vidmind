@@ -71,7 +71,19 @@ def get_yt_metadata(url):
         channel = html_lib.unescape(channel_match.group(1)) if channel_match else None
         
         return {"title": title, "channel": channel}
-    except Exception:
+    except Exception as e:
+        print(f"Primary metadata fetch failed: {e}. Trying OEmbed fallback...")
+        try:
+            import json, urllib.request
+            vid = extract_video_id(url)
+            if vid:
+                oembed_url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={vid}&format=json"
+                req = urllib.request.Request(oembed_url, headers={'User-Agent': 'Mozilla/5.0'})
+                resp = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
+                data = json.loads(resp)
+                return {"title": data.get("title"), "channel": data.get("author_name")}
+        except Exception as e2:
+            print(f"OEmbed fallback failed: {e2}")
         return {}
 
 def extract_video_id(url):
